@@ -63,8 +63,8 @@ def main(directory):
     plt.xticks(fontproperties=font_prop)
     plt.yticks(fontproperties=font_prop)
 
+    plt.savefig(f'result/Top_{word_counts}_words_chart_{author}_{dataset}.svg')
     plt.show()
-    plt.savefig('result/Top_10_words_chart.png')
 
     wc = wordcloud.WordCloud(font_path=font_path, width=800, height=400, background_color='white')
     wc.generate_from_frequencies(word_count_dict)
