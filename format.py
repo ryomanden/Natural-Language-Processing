@@ -3,8 +3,8 @@ import glob
 import re
 
 # 入力フォルダと出力フォルダのパスを指定
-input_folder = 'dataset/MoriOgai'
-output_folder = 'dataset/MoriOgai_cleaned'
+input_folder = 'text_raw_dataset/MoriOgai'
+output_folder = 'text_dataset/MoriOgai_cleaned'
 
 # フォルダが存在しない場合は作成
 os.makedirs(output_folder, exist_ok=True)
