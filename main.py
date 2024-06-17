@@ -5,8 +5,10 @@ from matplotlib import font_manager
 # import matplotlib_fontja
 import wordcloud
 
-font_path = 'fonts/HackGenConsoleNF-Regular.ttf'
-font_prop = font_manager.FontProperties(fname=font_path)
+font_mono_path = 'fonts/LINESeedJP_OTF_Rg.otf'
+font_seed_path = 'fonts/LINESeedJP_OTF_0.otf'
+font_mono_prop = font_manager.FontProperties(fname=font_mono_path)
+
 
 def read_text_files(directory):
     text_files = [f for f in os.listdir(directory) if f.endswith('.txt')]
