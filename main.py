@@ -28,6 +28,7 @@ def parse_text(text, tagger):
         node = node.next
     return parsed_result
 
+
 def word_count(texts):
     word_count = {}
     for text in texts:
@@ -38,9 +39,15 @@ def word_count(texts):
                 word_count[word] = 1
     return word_count
 
-def main(directory):
-    texts = read_text_files(directory)
+
+def main(dataset, author, cleaned=False):
+    if cleaned:
+        texts = read_text_files(f'{dataset}/{author}_cleaned')
+    else:
+        texts = read_text_files(f'{dataset}/{author}')
+
     tagger = MeCab.Tagger()
+    word_counts = 30
 
     flattened_parsed_texts = []
     for file, text in texts.items():
@@ -48,28 +55,33 @@ def main(directory):
         flattened_parsed_texts.extend(parsed_text)
 
     word_count_dict = word_count(flattened_parsed_texts)
-    word_count_dict = dict(sorted(word_count_dict.items(), key=lambda x: x[1], reverse=True)[:10])
+    word_count_dict = dict(sorted(word_count_dict.items(), key=lambda x: x[1], reverse=True)[:word_counts])
     print(word_count_dict)
 
     labels = list(word_count_dict.keys())
     values = list(word_count_dict.values())
 
     plt.figure(figsize=(10, 5))
-    plt.bar(labels, values)
-    plt.xlabel('Labels', fontproperties=font_prop)
-    plt.ylabel('Values', fontproperties=font_prop)
-    plt.title('Top 10 words', fontproperties=font_prop)
+    plt.bar(labels, values, color='gray')
+    plt.xlabel('Words', fontproperties=font_mono_prop)
+    plt.ylabel('Values', fontproperties=font_mono_prop)
+    plt.title(f"{author}'s Top {word_counts} words ({dataset})", fontproperties=font_mono_prop)
 
-    plt.xticks(fontproperties=font_prop)
-    plt.yticks(fontproperties=font_prop)
+    plt.xticks(rotation=90, fontproperties=font_mono_prop)
+    plt.yticks(fontproperties=font_mono_prop)
 
     plt.savefig(f'result/Top_{word_counts}_words_chart_{author}_{dataset}.svg')
     plt.show()
 
-    wc = wordcloud.WordCloud(font_path=font_path, width=800, height=400, background_color='white')
+    wc = wordcloud.WordCloud(font_path=font_seed_path, width=1080, height=720, background_color='white')
     wc.generate_from_frequencies(word_count_dict)
 
-    plt.imsave('result/wordcloud.png', wc.to_array())
+    plt.imsave(f'result/Top_{word_counts}_wordcloud_{author}_{dataset}.png', wc.to_array())
+
 
 if __name__ == "__main__":
-    main('dataset/AkutagawaRyunosuke_cleaned')
+    dataset = 'text_raw_dataset'
+    cleaned = False
+    main(dataset, 'AkutagawaRyunosuke', cleaned)
+    main(dataset, 'DazaiOsamu', cleaned)
+    main(dataset, 'MoriOgai', cleaned)
