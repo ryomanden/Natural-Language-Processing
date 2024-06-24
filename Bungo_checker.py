@@ -12,7 +12,7 @@ from sklearn.metrics import confusion_matrix
 dataset_file_name = './corpus.csv'
 model_file_name = 'logistic.pkl'
 
-# csvファイルを扱いやすいフォーマットに変形
+# --- LOAD DATA --- #
 
 with open(dataset_file_name, 'r', encoding='utf-8') as f:
     data = list(csv.reader(f))
@@ -38,6 +38,8 @@ for counter, row in enumerate(data):
 
 print('sum_words: ', len(sum_words))
 id2label = {v: k for k, v in label2id.items()}
+
+# --- TRAIN MODEL --- #
 
 #　テキストとラベルのデータをtrain, testに分割します
 X_train_texts, X_test_texts, y_train, y_test = train_test_split(texts, label_ids, test_size=0.2, random_state=42)
@@ -73,6 +75,7 @@ clf.fit(X_train_tfidf, y_train)
 # testデータを用いて分類器の精度を評価します
 y_pred = clf.predict(X_test_tfidf)
 target_names = list(id2label.values())
+
 
 print(classification_report(y_test, y_pred, target_names=target_names))
 print(confusion_matrix(y_test, y_pred))
