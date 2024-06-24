@@ -1,63 +1,136 @@
 import os
-import glob
 import re
+import sys
 
-# 入力フォルダと出力フォルダのパスを指定
-input_folder = 'text_raw_dataset/MoriOgai'
-output_folder = 'text_dataset/MoriOgai_cleaned'
+import MeCab
 
-# フォルダが存在しない場合は作成
-os.makedirs(output_folder, exist_ok=True)
+nm = MeCab.Tagger('-Owakati')
+
+# txtファイルを全部読み込んで分かち書きやクリーニングをしていく
+files = [f for f in os.listdir('text_raw_dataset') if f.split('.')[1] == 'txt']
+authors = {'dazai': [], 'mori': [], 'akutagawa': []}
+cleaned_data = []
+
+def clean(raw_text):
+    """
+    ルビや入力者注を削除して一文毎に分割,分かち書き
+    """
+    text = raw_text.replace('\n', '').replace('\u3000', '')
+    text = re.sub('[［《]', '／', text)
+    text = re.sub('[］》]', '＼', text)
+    text = re.sub('／[^＼]*?＼', '', text)
+    text = text.replace('。', '。\n')
+    text = text.replace('「', '')
+    text = text.replace('」', '\n').split('\n')
+
+    return [nm.parse(t).split(' ') for t in text if t]
+
+for f in files:
+        name = f.split('.')[0]
+        print(name)
+        with open('text_raw_dataset/'+str(f), 'r', encoding="utf-8") as f:
+            clean_text = clean(f.read())
+            authors[name] = clean_text
+            cleaned_data += clean_text
 
 
-def clean_text(text):
-    # メタデータセクションを削除する
-    lines = text.split('\n')
-    clean_lines = []
-    inside_metadata = False
+def make_stopdic(lines):
+    """
+    空白区切りの文の集まりのテキストのリストからストップワードの辞書を作成する。
+    """
+    calc_words = {}
     for line in lines:
-        if '-------------------------------------------------------' in line:
-            inside_metadata = not inside_metadata
-            continue
-        if inside_metadata:
-            continue
-        clean_lines.append(line)
+        for word in line:
+            if word in calc_words:
+                calc_words[str(word)] += 1
+            else:
+                calc_words[str(word)] = 1
+    sorted_stop = sorted(calc_words.items(), key=lambda x:x[1], reverse=True)
+    print("sorted_stop:"+str(len(sorted_stop)))
+    freq_num = int(len(sorted_stop)*0.03)
+    n = 0
+    stop_words = []
+    print("freq_num:"+str(freq_num))
+    for data in sorted_stop:
+        stop_words.append(str(data[0]))
+        #print('High frequency word: ',str(data[0]), str(data[1]))
+        n += 1
+        if n > freq_num:
+            break
+    # 作成したストップワードの辞書の保存
+    with open('./origin_stopwords.txt', 'w', encoding="utf-8") as f:
+        f.write('\n'.join(stop_words))
 
-    # メタデータセクションの外の部分のみ保持
-    clean_text = '\n'.join(clean_lines)
+make_stopdic(cleaned_data)
+print("cleaned_data:"+str(len(cleaned_data)))
 
-    # 最初の空行またはタイトル行まで削除
-    clean_text = re.sub(r'^(.*?\n)*?\n', '', clean_text, count=1)
+# ストップワードリストの作成
+stop_data = {}
+for f in files:
+    with open('text_raw_dataset/'+str(f), encoding="utf-8") as f1:
+        print(f)
+        nm = MeCab.Tagger('-Owakati')
+        text = nm.parse(f1.read()).split(' ')
+        for word in text:
+            if word in stop_data:
+                stop_data[str(word)] += 1
+            else:
+                stop_data[str(word)] = 1
 
-    # 底本以降を削除
-    clean_text = re.sub(r'\n底本.*$', '', clean_text, flags=re.DOTALL)
+sorted_stop = sorted(stop_data.items(), key=lambda x:x[1], reverse=True)
 
-    # 特定の記号と囲まれた部分を削除
-    clean_text = re.sub(r'《.*?》', '', clean_text)
-    clean_text = re.sub(r'［＃.*?］', '', clean_text)
-    clean_text = clean_text.replace('｜', '')
+print(len(sorted_stop))
 
-    return clean_text
+freq_num = int(len(sorted_stop)*0.03)
+n = 0
+stop_words = []
+print(freq_num)
+for data in sorted_stop:
+    stop_words.append(str(data[0]))
+    print('High frequency word: ',str(data[0]), str(data[1]))
+    n+= 1
+    if n > freq_num:
+        break
 
-
-def convert_file(input_file, output_file):
-    with open(input_file, 'r', encoding='shift_jis', errors='ignore') as f:
-        text = f.read()
-
-    clean_content = clean_text(text)
-
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(clean_content)
-
-
-def process_files(input_folder, output_folder):
-    files = glob.glob(os.path.join(input_folder, '*.txt'))
-    for input_file in files:
-        file_name = os.path.basename(input_file)
-        output_file = os.path.join(output_folder, file_name)
-        convert_file(input_file, output_file)
-        print(f"Processed: {file_name}")
+# 作成したストップワードの辞書の保存
+with open('./origin_stopwords.txt', 'w', encoding="utf-8") as f:
+    f.write('\n'.join(stop_words))
 
 
-# 実行
-process_files(input_folder, output_folder)
+def stopword_bydic(text):
+    """
+    辞書によるストップワードの除去
+    """
+    # 読み込むストップワード辞書の指定。
+    with open('./origin_stopwords.txt', encoding="utf-8") as f:
+        data = f.read()
+        stopwords = data.split('\n')
+    lines = []
+    for line in text:
+        words = []
+        for word in line:
+            if word not in stopwords:
+                words.append(word)
+        lines.append(words)
+    return lines
+
+sum_lines = len(stopword_bydic(cleaned_data))
+sum_words = []
+for line in stopword_bydic(cleaned_data):
+    for word in line:
+        if word not in sum_words:
+            sum_words.append(word)
+print('sum_lines: ', sum_lines)
+print('sum_words: ', len(sum_words))
+with open('origin_words.txt', 'w', encoding="utf-8") as f:
+    f.write('\n'.join(sum_words))
+cleaned_data = []
+for author, data in authors.items():
+    data = stopword_bydic(data)
+    for line in data:
+        #if len(line) > 2:
+        cleaned_data.append(author+','+' '.join(line))
+
+# 作成したコーパスの保存
+with open('./corpus.csv', 'w', encoding="utf-8") as f:
+    f.write(''.join(cleaned_data))
